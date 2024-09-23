@@ -400,26 +400,56 @@ bool check(Program *p, Expression *expr) {
 
 void echo(const char *, ...);
 
+void to_c_program(Program *p);
+void to_c_function(Program *p, Function *f);
+void to_c_function_decl(Program *p, Function *f);
 void to_c_call_builtin(Program *p, CallExpression *call);
 void to_c_call(Program *p, CallExpression *call);
 void to_c(Program *p, Expression *expr);
 
+
+void to_c_program(Program *p) {
+  for (size_t i = 0; i < p->functions_len; i++) {
+    to_c_function_decl(p, &p->functions[i]);
+  }
+  for (size_t i = 0; i < p->functions_len; i++) {
+    to_c_function(p, &p->functions[i]);
+  }
+}
+
+void to_c_function(Program *p, Function *f) {
+  if (f->kind == F_BUILTIN || f->kind == F_EXTERN)
+    return;
+
+  echo("%s %s(", f->return_type->name, f->name);
+  for (size_t i = 0; i < f->parameters_len; i++) {
+    if (i != 0) echo(", ");
+    echo("%s %s", f->parameters[i].type->name, f->parameters[i].name);
+  }
+  echo(") {\n");
+  to_c(p, f->body);
+  echo("}\n");
+}
+
+void to_c_function_decl(Program *p, Function *f) {
+  if (f->kind == F_BUILTIN)
+    return;
+
+  echo("%s %s(", f->return_type->name, f->name);
+  for (size_t i = 0; i < f->parameters_len; i++) {
+    if (i != 0) echo(", ");
+    echo("%s %s", f->parameters[i].type->name, f->parameters[i].name);
+  }
+  echo(");\n");
+}
+
 void to_c_call_builtin(Program *p, CallExpression *call) {
-  for (size_t i = 0; i < BASE_TYPES_LEN; i++) {
-    Type *t = base_types[i];
-    const char *ops[] = {"+","-","*","/"};
-    for (size_t j = 0; j < 4; j++) {
-      const char *op = ops[j];
-      if (call->function == program_find_function(p, op, (Type*[]){t,t}, 2)) {
-        echo("(");
-        to_c(p, &call->arguments[0]);
-        echo(" %s ", op);
-        to_c(p, &call->arguments[1]);
-        echo(")");
-        return;
-      }
-    }
-  }  
+  echo("(");
+  to_c(p, &call->arguments[0]);
+  echo(" %s ", call->function->name);
+  to_c(p, &call->arguments[1]);
+  echo(")");
+  return;
 }
 
 void to_c_call(Program *p, CallExpression *call) {
@@ -439,9 +469,9 @@ void to_c(Program *p, Expression *expr) {
           case L_I: echo("%ld", expr->e.l.l.i); break;
           case L_U: echo("%lu", expr->e.l.l.u); break;
           case L_F: echo("%lf", expr->e.l.l.f); break;
-          case L_S: echo("%s", expr->e.l.l.s); break;
+          case L_S: echo("\"%s\"", expr->e.l.l.s); break;
           case L_B: echo("%b", expr->e.l.l.b); break;
-          case L_C: echo("%c", expr->e.l.l.c); break;
+          case L_C: echo("'%c'", expr->e.l.l.c); break;
         }
         break;
     }
