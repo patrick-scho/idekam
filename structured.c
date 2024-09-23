@@ -43,9 +43,14 @@ typedef struct Type Type;
 typedef struct Variable Variable;
 typedef struct Function Function;
 
-typedef struct Expression        Expression;
-typedef struct LiteralExpression LiteralExpression;
-typedef struct CallExpression    CallExpression;
+typedef struct Expression         Expression;
+typedef struct LiteralExpression  LiteralExpression;
+typedef struct CallExpression     CallExpression;
+typedef struct BlockExpression    BlockExpression;
+typedef struct VariableExpression VariableExpression;
+typedef struct IfExpression       IfExpression;
+typedef struct ElseIfExpression   ElseIfExpression;
+typedef struct ElseExpression     ElseExpression;
 
 typedef struct Program Program;
 
@@ -130,9 +135,27 @@ struct CallExpression {
   Expression *arguments;
   size_t arguments_len;
 };
+struct BlockExpression {
+  Expression *expressions;
+  size_t expressions_len;
+};
+struct VariableExpression {
+  const char *name;
+};
+struct IfExpression {
+  Expression *condition;
+  Expression *body;
+};
+struct ElseIfExpression {
+  Expression *condition;
+  Expression *body;
+};
+struct ElseExpression {
+  Expression *body;
+};
 
 enum ExpressionKind {
-  E_LITERAL, E_CALL
+  E_LITERAL, E_CALL, E_BLOCK, E_VARIABLE, E_IF, E_ELSEIF, E_ELSE
 };
 
 struct Expression {
@@ -141,6 +164,11 @@ struct Expression {
   union {
     LiteralExpression l;
     CallExpression c;
+    BlockExpression b;
+    VariableExpression v;
+    IfExpression i;
+    ElseIfExpression ei;
+    ElseExpression e;
   } e;
 };
 
@@ -387,6 +415,43 @@ void to_c(Program *p, Expression *expr) {
           to_c_call(p, c);
           break;
         }
+        break;
+    }
+    case E_BLOCK: {
+        BlockExpression *b = &expr->e.b;
+        echo("{\n");
+        for (size_t i = 0; i < b->expressions_len; i++) {
+          to_c(p, &b->expressions[i]);
+          echo("\n");
+        }
+        echo("}\n");
+        break;
+    }
+    case E_VARIABLE: {
+        VariableExpression *v = &expr->e.v;
+        echo("%s", v->name);
+        break;
+    }
+    case E_IF: {
+        IfExpression *i = &expr->e.i;
+        echo("if (");
+        to_c(p, i->condition);
+        echo(")\n");
+        to_c(p, i->body);
+        break;
+    }
+    case E_ELSEIF: {
+        ElseIfExpression *ei = &expr->e.ei;
+        echo("else if (");
+        to_c(p, ei->condition);
+        echo(")\n");
+        to_c(p, ei->body);
+        break;
+    }
+    case E_ELSE: {
+        ElseExpression *e = &expr->e.e;
+        echo("else\n");
+        to_c(p, e->body);
         break;
     }
   }
