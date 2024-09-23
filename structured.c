@@ -566,9 +566,16 @@ void echo(const char *fmt, ...) {
 }
 
 
-#define NUMARGS(...) (sizeof((Expression[]){__VA_ARGS__})/sizeof(Expression))
-#define CALL(f, ...) (Expression){.kind = E_CALL,.e.c = (CallExpression){f, (Expression[]){__VA_ARGS__},NUMARGS(__VA_ARGS__)}}
+#define NUMEXPRS(...) (sizeof((Expression[]){__VA_ARGS__})/sizeof(Expression))
+#define CALL(f, ...) (Expression){.kind = E_CALL,.e.c = (CallExpression){.function=f, .arguments=(Expression[]){__VA_ARGS__},.arguments_len=NUMEXPRS(__VA_ARGS__)}}
 #define LIT_I(v) (Expression){.kind=E_LITERAL,.e.l=(LiteralExpression){.kind=L_I,.l.i=v}}
+#define LIT_S(v) (Expression){.kind=E_LITERAL,.e.l=(LiteralExpression){.kind=L_S,.l.s=v}}
+#define VAR(n) (Expression){.kind=E_VARIABLE,.e.v=(VariableExpression){n}}
+#define BLOCK(e0, ...) (Expression){.kind=E_BLOCK, .e.b=(BlockExpression){(Expression[]){e0, __VA_ARGS__},NUMEXPRS(e0, __VA_ARGS__)}}
+#define FUNC1(n, t, n0, t0, e) (Function){F_USER_DEFINED,n,t,.parameters[0]=(Variable){n0,t0},.parameters_len=1,e}
+#define IF(c, b) (Expression){.kind=E_IF, .e.i=(IfExpression){c,b}}
+#define ELSEIF(c, b) (Expression){.kind=E_ELSEIF, .e.ei=(ElseIfExpression){c,b}}
+#define ELSE(b) (Expression){.kind=E_ELSE, .e.e=(ElseExpression){b}}
 
 int main() {
   static Type types_buffer[1024] = {0};
