@@ -608,7 +608,38 @@ int main() {
 
   if (check(&p, &e)) {
     to_c(&p, &e);
-  }  
+  }
+  
+  Function fizzbuzz =
+    FUNC1("fizzbuzz", t_void, "n", t_i64,
+      &BLOCK(
+        IF(
+          &CALL(f_bool_and,
+            CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(3)), LIT_I(0)),
+            CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(5)), LIT_I(0)),
+          ),
+          &CALL(f_printf, LIT_S("FizzBuzz"))
+        ),
+        ELSEIF(
+          &CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(3)), LIT_I(0)),
+          &CALL(f_printf, LIT_S("Fizz"))
+        ),
+        ELSEIF(
+          &CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(5)), LIT_I(0)),
+          &CALL(f_printf, LIT_S("Buzz"))
+        ),
+        ELSE(
+          &CALL(f_printf, LIT_S("%d"), VAR("n"))
+        )
+      )
+    );
 
+  program_add_function(&p, fizzbuzz);
+
+  to_c_program(&p);
+  // if (check(&p, &fizzbuzz)) {
+  //   to_c(&p, &fizzbuzz);
+  // }
+  
   return 0;
 }
