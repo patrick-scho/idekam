@@ -253,37 +253,78 @@ Function *program_find_function(Program *p, const char *name, Type **parameter_t
 
 // BASE functions/types
 
-#define BASE_TYPES_LEN 10
+#define BASE_TYPES_LEN 14
 static Type *base_types[BASE_TYPES_LEN];
 
 void init_base_types(Program *p) {
-  base_types[0] = &(Type){T_BASE, "u8", .t.b={1}};
-  base_types[1] = &(Type){T_BASE, "i8", .t.b={1}};
-  base_types[2] = &(Type){T_BASE, "u16", .t.b={2}};
-  base_types[3] = &(Type){T_BASE, "i16", .t.b={2}};
-  base_types[4] = &(Type){T_BASE, "u32", .t.b={4}};
-  base_types[5] = &(Type){T_BASE, "i32", .t.b={4}};
-  base_types[6] = &(Type){T_BASE, "u64", .t.b={8}};
-  base_types[7] = &(Type){T_BASE, "i64", .t.b={8}};
-  base_types[8] = &(Type){T_BASE, "f32", .t.b={4}};
-  base_types[9] = &(Type){T_BASE, "f64", .t.b={8}};
+  base_types[0]  = program_add_type(p, (Type){T_BASE, "u8", .t.b={1}});
+  base_types[1]  = program_add_type(p, (Type){T_BASE, "i8", .t.b={1}});
+  base_types[2]  = program_add_type(p, (Type){T_BASE, "u16", .t.b={2}});
+  base_types[3]  = program_add_type(p, (Type){T_BASE, "i16", .t.b={2}});
+  base_types[4]  = program_add_type(p, (Type){T_BASE, "u32", .t.b={4}});
+  base_types[5]  = program_add_type(p, (Type){T_BASE, "i32", .t.b={4}});
+  base_types[6]  = program_add_type(p, (Type){T_BASE, "u64", .t.b={8}});
+  base_types[7]  = program_add_type(p, (Type){T_BASE, "i64", .t.b={8}});
+  base_types[8]  = program_add_type(p, (Type){T_BASE, "f32", .t.b={4}});
+  base_types[9]  = program_add_type(p, (Type){T_BASE, "f64", .t.b={8}});
+  base_types[10] = program_add_type(p, (Type){T_BASE, "bool", .t.b={1}});
+  base_types[11] = program_add_type(p, (Type){T_BASE, "void", .t.b={0}});
+  base_types[12] = program_add_type(p, (Type){T_BASE, "str", .t.b={8}});
+  base_types[13] = program_add_type(p, (Type){T_BASE, "...", .t.b={0}});
 
-  for (size_t i = 0; i < BASE_TYPES_LEN; i++) {
-    Type *t = program_add_type(p, *base_types[i]);
-    base_types[i] = t;
-    const char *ops[] = {"+","-","*","/"};
-    for (size_t j = 0; j < 4; j++) {
-      Function new_f = {0};
-      new_f.kind           = F_BUILTIN;
-      new_f.name           = ops[j];
-      new_f.return_type    = t;
-      new_f.parameters[0]  = (Variable){"a", t};
-      new_f.parameters[1]  = (Variable){"b", t};
-      new_f.parameters_len = 2;
-      new_f.body           = NULL;
+  Function new_f = {
+    .kind           = F_BUILTIN,
+    .parameters[0]  = (Variable){"a", NULL},
+    .parameters[1]  = (Variable){"b", NULL},
+    .parameters_len = 2,
+  };
+  
+  // integer types
+  for (size_t i = 0; i <= 7; i++) {
+    Type *t = base_types[i];
+    const char *ops[] = {"+","-","*","/","%","==","!=","<",">"};
+    for (size_t j = 0; j < sizeof(ops)/sizeof(*ops); j++) {
+      new_f.name = ops[j];
+      new_f.return_type = t;
+      new_f.parameters[0].type = t;
+      new_f.parameters[1].type = t;
       program_add_function(p, new_f);
     }
   }
+
+  // float types
+  for (size_t i = 8; i <= 9; i++) {
+    Type *t = base_types[i];
+    const char *ops[] = {"+","-","*","/","==","!=","<",">"};
+    for (size_t j = 0; j < sizeof(ops)/sizeof(*ops); j++) {
+      new_f.name = ops[j];
+      new_f.return_type = t;
+      new_f.parameters[0].type = t;
+      new_f.parameters[1].type = t;
+      program_add_function(p, new_f);
+    }
+  }
+
+  // bool
+  {
+    Type *t = base_types[10];
+    const char *ops[] = {"&&","||","==","!="};
+    for (size_t j = 0; j < sizeof(ops)/sizeof(*ops); j++) {
+      new_f.name = ops[j];
+      new_f.return_type = t;
+      new_f.parameters[0].type = t;
+      new_f.parameters[1].type = t;
+      program_add_function(p, new_f);
+    }
+  }
+
+  new_f.kind = F_EXTERN;
+  new_f.name = "printf";
+  new_f.return_type = base_types[11];
+  new_f.parameters[0] = (Variable){"fmt",base_types[12]};
+  new_f.parameters[1] = (Variable){"args",base_types[13]};
+  program_add_function(p, new_f);
+
 }
 
 
@@ -509,7 +550,15 @@ int main() {
   init_base_types(&p);
 
   Type *t_i64 = program_find_type(&p, "i64");
+  Type *t_str = program_find_type(&p, "str");
+  Type *t_variadic = program_find_type(&p, "...");
+  Type *t_bool = program_find_type(&p, "bool");
+  Type *t_void = program_find_type(&p, "void");
   Function *f_i64_add = program_find_function(&p, "+", (Type*[]){t_i64, t_i64}, 2);
+  Function *f_i64_eql = program_find_function(&p, "==", (Type*[]){t_i64, t_i64}, 2);
+  Function *f_i64_mod = program_find_function(&p, "%", (Type*[]){t_i64, t_i64}, 2);
+  Function *f_bool_and = program_find_function(&p, "&&", (Type*[]){t_bool, t_bool}, 2);
+  Function *f_printf = program_find_function(&p, "printf", (Type*[]){t_str, t_variadic}, 2);
   
   Expression e =
     CALL(f_i64_add,
