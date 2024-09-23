@@ -3,6 +3,25 @@
 #include <stdbool.h>
 
 
+/* todo
+- print:
+  - program
+  - structs
+  - functions
+- expressions:
+  - if
+  - loops
+  - variables
+  - assignment
+  - block
+  - operators
+- types:
+  - str
+- check
+- get_type
+- literals (Type*, uintptr_t ?)
+- varargs
+*/
 // typedefs
 
 typedef  uint8_t  u8;
