@@ -136,7 +136,7 @@ struct BlockExpression {
   size_t expressions_len;
 };
 struct VariableExpression {
-  const char *name;
+  Variable *variable;
 };
 struct IfExpression {
   Expression *condition;
@@ -496,7 +496,7 @@ void to_c(Program *p, Expression *expr) {
     }
     case E_VARIABLE: {
         VariableExpression *v = &expr->e.v;
-        echo("%s", v->name);
+        echo("%s", v->variable->name);
         break;
     }
     case E_IF: {
@@ -602,40 +602,44 @@ int main() {
       )
     );
 
+  logi("Type checking expression");
   if (check(&p, &e)) {
+    logi("Printing expression");
     to_c(&p, &e);
+    echo("\n\n");
   }
   
   Function fizzbuzz =
-    FUNC1("fizzbuzz", t_void, "n", t_i64,
-      &BLOCK(
-        IF(
-          &CALL(f_bool_and,
-            CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(3)), LIT_I(0)),
-            CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(5)), LIT_I(0)),
-          ),
-          &CALL(f_printf, LIT_S("FizzBuzz"))
+    FUNC1("fizzbuzz", t_void, "n", t_i64, NULL);
+  Variable *v_n = &fizzbuzz.parameters[0];
+  fizzbuzz.body =
+    &BLOCK(
+      IF(
+        &CALL(f_bool_and,
+          CALL(f_i64_eql, CALL(f_i64_mod, VAR(v_n), LIT_I(3)), LIT_I(0)),
+          CALL(f_i64_eql, CALL(f_i64_mod, VAR(v_n), LIT_I(5)), LIT_I(0)),
         ),
-        ELSEIF(
-          &CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(3)), LIT_I(0)),
-          &CALL(f_printf, LIT_S("Fizz"))
-        ),
-        ELSEIF(
-          &CALL(f_i64_eql, CALL(f_i64_mod, VAR("n"), LIT_I(5)), LIT_I(0)),
-          &CALL(f_printf, LIT_S("Buzz"))
-        ),
-        ELSE(
-          &CALL(f_printf, LIT_S("%d"), VAR("n"))
-        )
+        &CALL(f_printf, LIT_S("FizzBuzz"))
+      ),
+      ELSEIF(
+        &CALL(f_i64_eql, CALL(f_i64_mod, VAR(v_n), LIT_I(3)), LIT_I(0)),
+        &CALL(f_printf, LIT_S("Fizz"))
+      ),
+      ELSEIF(
+        &CALL(f_i64_eql, CALL(f_i64_mod, VAR(v_n), LIT_I(5)), LIT_I(0)),
+        &CALL(f_printf, LIT_S("Buzz"))
+      ),
+      ELSE(
+        &CALL(f_printf, LIT_S("%d"), VAR(v_n))
       )
     );
 
   program_add_function(&p, fizzbuzz);
 
+  // logi("Type checking program");
+  // if (check_program(&p))
+  logi("Printing program");
   to_c_program(&p);
-  // if (check(&p, &fizzbuzz)) {
-  //   to_c(&p, &fizzbuzz);
-  // }
   
   return 0;
 }
