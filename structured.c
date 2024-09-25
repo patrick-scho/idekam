@@ -444,11 +444,11 @@ void to_c_function_decl(Program *p, Function *f) {
 }
 
 void to_c_call_builtin(Program *p, CallExpression *call) {
-  echo("(");
+  // echo("(");
   to_c(p, &call->arguments[0]);
   echo(" %s ", call->function->name);
   to_c(p, &call->arguments[1]);
-  echo(")");
+  // echo(")");
   return;
 }
 
