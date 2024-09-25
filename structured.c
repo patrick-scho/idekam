@@ -395,6 +395,7 @@ bool check(Program *p, Expression *expr) {
 // c output
 
 void echo(const char *, ...);
+int indent(int);
 
 void to_c_program(Program *p);
 void to_c_function(Program *p, Function *f);
@@ -408,6 +409,7 @@ void to_c_program(Program *p) {
   for (size_t i = 0; i < p->functions_len; i++) {
     to_c_function_decl(p, &p->functions[i]);
   }
+  echo("\n");
   for (size_t i = 0; i < p->functions_len; i++) {
     to_c_function(p, &p->functions[i]);
   }
@@ -422,8 +424,10 @@ void to_c_function(Program *p, Function *f) {
     if (i != 0) echo(", ");
     echo("%s %s", f->parameters[i].type->name, f->parameters[i].name);
   }
-  echo(") {\n");
+  echo(") {");
+  indent(1);
   to_c(p, f->body);
+  indent(-1);
   echo("}\n");
 }
 
@@ -486,12 +490,10 @@ void to_c(Program *p, Expression *expr) {
     }
     case E_BLOCK: {
         BlockExpression *b = &expr->e.b;
-        echo("{\n");
         for (size_t i = 0; i < b->expressions_len; i++) {
           to_c(p, &b->expressions[i]);
-          echo("\n");
+          indent(0);
         }
-        echo("}\n");
         break;
     }
     case E_VARIABLE: {
@@ -503,22 +505,31 @@ void to_c(Program *p, Expression *expr) {
         IfExpression *i = &expr->e.i;
         echo("if (");
         to_c(p, i->condition);
-        echo(")\n");
+        echo(") {");
+        indent(1);
         to_c(p, i->body);
+        indent(-1);
+        echo("}");
         break;
     }
     case E_ELSEIF: {
         ElseIfExpression *ei = &expr->e.ei;
         echo("else if (");
         to_c(p, ei->condition);
-        echo(")\n");
+        echo(") {");
+        indent(1);
         to_c(p, ei->body);
+        indent(-1);
+        echo("}");
         break;
     }
     case E_ELSE: {
         ElseExpression *e = &expr->e.e;
-        echo("else\n");
+        echo("else {");
+        indent(1);
         to_c(p, e->body);
+        indent(-1);
+        echo("}");
         break;
     }
   }
@@ -559,6 +570,14 @@ void echo(const char *fmt, ...) {
   va_start(args, fmt);
   vfprintf(stdout, fmt, args);
   va_end(args);
+}
+int indent(int change) {
+  static int indentation = 0;
+  indentation += change;
+  echo("\n");
+  for (int i = 0; i < indentation; i++)
+    echo("  ");
+  return indentation;
 }
 
 
