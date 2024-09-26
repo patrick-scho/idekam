@@ -47,6 +47,7 @@ typedef struct VariableExpression VariableExpression;
 typedef struct IfExpression       IfExpression;
 typedef struct ElseIfExpression   ElseIfExpression;
 typedef struct ElseExpression     ElseExpression;
+typedef struct WhileExpression    WhileExpression;
 
 typedef struct Program Program;
 
@@ -149,9 +150,14 @@ struct ElseIfExpression {
 struct ElseExpression {
   Expression *body;
 };
+struct WhileExpression {
+  Expression *condition;
+  Expression *body;
+};
 
 enum ExpressionKind {
   E_LITERAL, E_CALL, E_BLOCK, E_VARIABLE, E_IF, E_ELSEIF, E_ELSE
+  E_LITERAL, E_CALL, E_BLOCK, E_VARIABLE, E_IF, E_ELSEIF, E_ELSE, E_WHILE
 };
 
 struct Expression {
@@ -528,6 +534,17 @@ void to_c(Program *p, Expression *expr) {
         echo("else {");
         indent(1);
         to_c(p, e->body);
+        indent(-1);
+        echo("}");
+        break;
+    }
+    case E_WHILE: {
+        WhileExpression *w = &expr->e.w;
+        echo("while (");
+        to_c(p, w->condition);
+        echo(") {");
+        indent(1);
+        to_c(p, w->body);
         indent(-1);
         echo("}");
         break;
